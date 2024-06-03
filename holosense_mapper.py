@@ -68,6 +68,7 @@ def nr_approx(first, last, step, consts):
             ff = zfirst * -1
         if ff > 0 and zfirst < 0 or ff < 0 and zfirst > 0:
             return [a, bd.real, cd.real]
+        
 lex = 0
 ley = 0
 rex = 0
