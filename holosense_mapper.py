@@ -3,11 +3,14 @@ import mediapipe as mp
 import math
 import cv2
 import time
-import configdata
 import struct
 from multiprocessing import shared_memory
+import configdata
 
 thisconf = configdata.config
+cap = cv2.VideoCapture(thisconf.cameraname)
+thisconf.configcamera(thisconf, cap)
+
 shm = shared_memory.SharedMemory(name = "holosenseData", create=True, size=24) # 3 floats of shared memory
 buffer = shm.buf
 
@@ -25,10 +28,8 @@ dilation = 1
 
 camw = thisconf.camw
 camh = thisconf.camh
-HFOV = thisconf.HFOV * math.pi / 180
-VFOV = thisconf.VFOV * math.pi / 180
-htan = - math.tan(HFOV/2)
-vtan =  math.tan(VFOV/2)
+htan = thisconf.htan
+vtan =  thisconf.vtan
 
 dispw = thisconf.dispw
 disph = thisconf.disph
@@ -39,10 +40,6 @@ camera_z_offset = thisconf.camera_z_offset
 endist = thisconf.endist
 eedist = thisconf.eedist
 
-cap = cv2.VideoCapture(thisconf.cameraname)
-thisconf.configcamera(thisconf, cap)
-inference_interval = thisconf.inference_interval
-lfp = thisconf.log_file
 logs = []
 starttime = round(time.time() * 1000)
 
@@ -110,7 +107,8 @@ with mp_face_mesh.FaceMesh(
                 cv2.circle(image, (int(rex), int(rey)), 3, (255, 0, 0), -1)
                 cv2.circle(image, (int(lex), int(ley)), 3, (255, 0, 0), -1)
                 cv2.circle(image, (int(nx), int(ny)), 3, (255, 0, 0), -1)
-
+        print(htan)
+        print(vtan)
         
         e1h = htan * ((camw/2) - rex)/(camw/2) 
         e1v = vtan * ((camh/2) - rey)/(camh/2)
@@ -129,13 +127,14 @@ with mp_face_mesh.FaceMesh(
             #print("success")
             rer = (red / ((e1h ** 2 + e1v ** 2 + 1)**0.5))
             ler = (led / ((e2h ** 2 + e2v ** 2 + 1)**0.5))
-            prc = [(e1h * rer + e2h * ler)/2 + camera_x_offset, (e1v * rer + e2v * ler)/2 + camera_y_offset, (ler + rer)/2 + camera_z_offset]           
+            prc = [(e1h * rer + e2h * ler)/2 + camera_x_offset, (e1v * rer + e2v * ler)/2 + camera_y_offset, (ler + rer)/2 + camera_z_offset]      
+            cv2.putText(image, "User Position: " + str(round(prc[0], 3)) + "," + str(round(prc[1], 3)) + "," + str(round(prc[2], 3)), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255))     
             for iter1, valuezz in enumerate(prc):
 
                 struct.pack_into('d', buffer, iter1 * 8, valuezz)
         except:
             pass
-        cv2.putText(image, "User Position: " + str(round(prc[0], 3)) + "," + str(round(prc[1], 3)) + "," + str(round(prc[2], 3)), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255))
+        
         cv2.imshow('preview', image)
         cv2.waitKey(1)
             
