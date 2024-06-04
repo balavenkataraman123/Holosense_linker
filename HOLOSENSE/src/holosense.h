@@ -15,6 +15,19 @@
 
 
 using namespace boost::interprocess;
+
+std::string getEnvVar( std::string const & key ) const
+{
+    char* val = getenv( key.c_str() );
+    if(var == NULL){
+        std::cout <<"Holosense backend environment variables are missing, start the backend first\n";
+        throw std::invalid_argument( "BACKEND NOT CONFIGURED" );
+        
+    }
+    return val == NULL ? std::string("") : std::string(val);
+
+}
+
 namespace Holosense
 {
     class Holosense
@@ -26,11 +39,11 @@ namespace Holosense
         double window_left_offset;
         double window_top_offset;
         double window_bottom_offset;
-        double wpx = 3840; // temporary stuff
-        double hpx = 2160;
+        double wpx = strtod(getEnvVar("DISPLAY_WIDTH"),NULL); 
+        double hpx = strtod(getEnvVar("DISPLAY_HEIGHT"),NULL); 
         Holosense() { // constructor method
 
-                double scdiag = 15.6; // meant to read this from the config file.
+                double scdiag = strtod(getEnvVar("DISPLAY_DIAGONAL")); // meant to read this from the config file.
                 screen_width = scdiag * (wpx/sqrt(wpx * wpx + hpx * hpx)); // sets the screen width and height in inches
                 screen_width = scdiag * (hpx/sqrt(wpx * wpx + hpx * hpx));
                 window_top_offset = screen_height / 2;
@@ -57,7 +70,7 @@ namespace Holosense
             window_bottom_offset = -((double)(bottom) / (double)hpx)*screen_height;
             window_top_offset = (screen_height/2) - ((double)top/ (double)hpx)*screen_height;
         }
-        glm::mat4 getProjectionMatrix(double dpi, double farplane) // dpi the ratio between game coordinate space and inches in real life. 
+        glm::mat4 getProjectionMatrix(double dpi, double farplane) // dpi is the ratio between game coordinate space and inches in real life. 
         { 
             shared_memory_object shm(open_only, "holosenseData", read_only);
             mapped_region region(shm, read_only);
