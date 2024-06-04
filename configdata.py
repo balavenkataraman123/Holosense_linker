@@ -1,4 +1,6 @@
 import cv2
+import os
+import math
 class config: # configurations for the camera, display, and user
     
     # Default configurations.
@@ -8,13 +10,14 @@ class config: # configurations for the camera, display, and user
     cameraname = "/dev/video0"
     camw = 1280 
     camh = 720
+    FOV = 80
 
     # These values can be found on the manufacturer's datasheet of your camera.
     # This assumes that your camera has no distortion of the image plane
     # because these types of distortion are not common in laptop webcams
     
-    HFOV = 73.739 # horizontal FOV in degrees.
-    VFOV = 38.5 # vertical field of view
+    htan = 0 # horizontal FOV in degrees.
+    vtan = 0 # vertical field of view
 
     # Display resolution.
     dispw = 3840 
@@ -33,8 +36,15 @@ class config: # configurations for the camera, display, and user
     endist = 3
 
     def configcamera(self, cap):
+
         # Here is where you configure the video capture settings.
         # Edit configurations like exposure based on your setup
+        os.environ["DISPLAY_DIAGONAL"] = str(self.screen_diagonal)
+        os.environ["DISPLAY_WIDTH"] = str(self.dispw)
+        os.environ["DISPLAY_HEIGHT"] = str(self.disph)
+        self.htan = math.tan(self.FOV * math.pi / 360) * self.camw/((self.camh ** 2 + self.camw ** 2) ** 0.5)
+        self.vtan = math.tan(self.FOV * math.pi / 360) * self.camh/((self.camh ** 2 + self.camw ** 2) ** 0.5)
+        
         cap.set(cv2.CAP_PROP_FPS, 60)
         cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.camw)
@@ -45,9 +55,4 @@ class config: # configurations for the camera, display, and user
     
     # DATA LOGGING
     
-    log_file = "log.txt"    #file path to log file    
-    inference_interval = 2 # saves entry to file every _ frames of your camera
-    
-
-
     
