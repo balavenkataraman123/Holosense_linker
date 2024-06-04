@@ -15,16 +15,16 @@
 
 
 using namespace boost::interprocess;
-
-std::string getEnvVar( std::string const & key ) const
+std::string getEnvVar( std::string const& key )
 {
     char* val = getenv( key.c_str() );
-    if(var == NULL){
+    if(val == NULL){
         std::cout <<"Holosense backend environment variables are missing, start the backend first\n";
         throw std::invalid_argument( "BACKEND NOT CONFIGURED" );
+        return NULL;
         
     }
-    return val == NULL ? std::string("") : std::string(val);
+    return std::string(val);
 
 }
 
@@ -39,11 +39,11 @@ namespace Holosense
         double window_left_offset;
         double window_top_offset;
         double window_bottom_offset;
-        double wpx = strtod(getEnvVar("DISPLAY_WIDTH"),NULL); 
-        double hpx = strtod(getEnvVar("DISPLAY_HEIGHT"),NULL); 
+        double wpx = atof(getEnvVar("DISPLAY_WIDTH").c_str()); 
+        double hpx = atof(getEnvVar("DISPLAY_HEIGHT").c_str()); 
         Holosense() { // constructor method
 
-                double scdiag = strtod(getEnvVar("DISPLAY_DIAGONAL")); // meant to read this from the config file.
+                double scdiag = atof(getEnvVar("DISPLAY_DIAGONAL").c_str());  // meant to read this from the config file.
                 screen_width = scdiag * (wpx/sqrt(wpx * wpx + hpx * hpx)); // sets the screen width and height in inches
                 screen_width = scdiag * (hpx/sqrt(wpx * wpx + hpx * hpx));
                 window_top_offset = screen_height / 2;
