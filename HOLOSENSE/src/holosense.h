@@ -11,6 +11,10 @@
 // validator program?
 // environment variable to set holosense config path?
 
+//temporary
+#define screensize 15.6; // screen diagonal in inches
+#define widthpx 3480; // screen width and height in pixels
+#define heightpx 2400;
 
 using namespace boost::interprocess;
 namespace Holosense
@@ -20,9 +24,12 @@ namespace Holosense
     public:
         double screen_width;
         double screen_height;
-        double centre_x_offset;
-        double centre_y_offset;
         Holosense() { // constructor method
+                double wpx = widthpx;
+                double hpx = heightpx;
+                double scdiag = screensize;
+                screen_width = scdiag * (wpx/sqrt(wpx * wpx + hpx * hpx)); // sets the screen width and height in inches
+                screen_width = scdiag * (hpx/sqrt(wpx * wpx + hpx * hpx));
                 try{
                     shared_memory_object shm_source(open_only, "holosenseData", read_only);
                     std::string name = shm_source.get_name();
@@ -41,6 +48,7 @@ namespace Holosense
         { 
             shared_memory_object shm(open_only, "holosenseData", read_only);
             mapped_region region(shm, read_only);
+            
             void* addr = region.get_address();
             double* data = static_cast<double*>(addr);
             double xcoord = data[0] * dpi;
@@ -51,14 +59,12 @@ namespace Holosense
             double top = ycoord - this->screen_width * 0.5;
             double bottom = ycoord + this->screen_width * 0.5;
             double nearplane = zcoord;
+
             glm::mat4 projectionMatrix = glm::frustum(left, right, top, bottom, nearplane, farplane);
             projectionMatrix = glm::translate(projectionMatrix, glm::vec3(xcoord, ycoord, zcoord));
             return projectionMatrix;
 
         }
-
-
-
 
     };
 
