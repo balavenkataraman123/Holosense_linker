@@ -11,7 +11,7 @@ thisconf = configdata.config
 cap = cv2.VideoCapture(thisconf.cameraname)
 thisconf.configcamera(thisconf, cap)
 
-shm = shared_memory.SharedMemory(name = "holosenseData", create=True, size=24) # 3 floats of shared memory
+shm = shared_memory.SharedMemory(name = "holosenseData", create=True, size=32) # 3 floats of shared memory
 buffer = shm.buf
 
 
@@ -43,7 +43,8 @@ eedist = thisconf.eedist
 logs = []
 starttime = round(time.time() * 1000)
 
-
+# Assume the viewpoint can't move any faster than 10mph.
+previous_position = 12
 
 numinf = 0
 def eval_func(a, consts):
@@ -52,19 +53,19 @@ def eval_func(a, consts):
     cp = func_b(c3, c4, a)
     return [(bp**2 + cp**2) - (2*cp*bp*c5) - (c6)**2, bp, cp]
 def func_b(c1, c2, a):
-    return ((2*a*c1) + ((2*a*c1) ** 2 + 4*(c2 **2 - a**2))**0.5) / 2
-def nr_approx(first, last, step, consts):
-    zeroes = []
-    [zfirst, bd, cd] = eval_func(first, consts)
-    for j in range(int((last - first) / step)):
-        a = (j * step) + first
-        [ff, bd,cd] = eval_func(a, consts)
-        try:
-            zz = int(ff)
-        except:
-            ff = zfirst * -1
-        if ff > 0 and zfirst < 0 or ff < 0 and zfirst > 0:
-            return [a, bd.real, cd.real]
+    return ((2*a*c1) + abs((2*a*c1) ** 2 + 4*(c2 **2 - a**2))**0.5) / 2
+def nr_approx_fast(value, epsilon, steps, consts):
+    [zfirst, bd, cd] = eval_func(value, consts)
+    [zfirst1, bd, cd] = eval_func(value + epsilon, consts)
+
+    derivative = (zfirst - zfirst1) / epsilon
+    nextvalue = value + zfirst/derivative
+    if steps == 0:
+        vals = eval_func(nextvalue, consts)
+        vals[0] = nextvalue
+        return vals
+    else:
+        return nr_approx_fast(nextvalue, epsilon, steps-1, consts)
         
 lex = 0
 ley = 0
@@ -107,9 +108,7 @@ with mp_face_mesh.FaceMesh(
                 cv2.circle(image, (int(rex), int(rey)), 3, (255, 0, 0), -1)
                 cv2.circle(image, (int(lex), int(ley)), 3, (255, 0, 0), -1)
                 cv2.circle(image, (int(nx), int(ny)), 3, (255, 0, 0), -1)
-        print(htan)
-        print(vtan)
-        
+
         e1h = htan * ((camw/2) - rex)/(camw/2) 
         e1v = vtan * ((camh/2) - rey)/(camh/2)
         e2h = htan * ((camw/2) - lex)/(camw/2)
@@ -122,15 +121,17 @@ with mp_face_mesh.FaceMesh(
         en2 = ((e2h * nh) + (e2v * nv) + 1) / (((e2h ** 2 + e2v ** 2 + 1) ** 0.5) * ((nh ** 2 + nv ** 2 + 1) ** 0.5))
         #print("distance approximation")
         try:
-            [nd1, led, red] = nr_approx(0,90,1,[en2, endist, en1, endist, eec, eedist])
-            [nd, led, red] = nr_approx(nd1-1,nd1,0.01,[en2, endist, en1, endist, eec, eedist])
+    
+            [nd, led, red] = nr_approx_fast(previous_position, 0.01, 3, [en2, endist, en1, endist, eec, eedist])
+            previous_position = nd
+            print([nd, led, red])
             #print("success")
             rer = (red / ((e1h ** 2 + e1v ** 2 + 1)**0.5))
             ler = (led / ((e2h ** 2 + e2v ** 2 + 1)**0.5))
-            prc = [(e1h * rer + e2h * ler)/2 + camera_x_offset, (e1v * rer + e2v * ler)/2 + camera_y_offset, (ler + rer)/2 + camera_z_offset]      
+            prc = [(e1h * rer + e2h * ler)/2 + camera_x_offset, (e1v * rer + e2v * ler)/2 + camera_y_offset, (ler + rer)/2 + camera_z_offset]  # stands for processed coordinates not the other acronym.
+            prc.append(time.time())
             cv2.putText(image, "User Position: " + str(round(prc[0], 3)) + "," + str(round(prc[1], 3)) + "," + str(round(prc[2], 3)), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255))     
             for iter1, valuezz in enumerate(prc):
-
                 struct.pack_into('d', buffer, iter1 * 8, valuezz)
         except:
             pass
