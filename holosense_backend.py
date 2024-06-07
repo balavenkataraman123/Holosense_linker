@@ -124,12 +124,12 @@ with mp_face_mesh.FaceMesh(
     
             [nd, led, red] = nr_approx_fast(previous_position, 0.01, 3, [en2, endist, en1, endist, eec, eedist])
             previous_position = nd
-            print([nd, led, red])
             #print("success")
-            rer = (red / ((e1h ** 2 + e1v ** 2 + 1)**0.5))
-            ler = (led / ((e2h ** 2 + e2v ** 2 + 1)**0.5))
+            rer = (abs(red) / ((e1h ** 2 + e1v ** 2 + 1)**0.5))
+            ler = (abs(led) / ((e2h ** 2 + e2v ** 2 + 1)**0.5))
             prc = [(e1h * rer + e2h * ler)/2 + camera_x_offset, (e1v * rer + e2v * ler)/2 + camera_y_offset, (ler + rer)/2 + camera_z_offset]  # stands for processed coordinates not the other acronym.
             prc.append(time.time())
+            print(prc)
             cv2.putText(image, "User Position: " + str(round(prc[0], 3)) + "," + str(round(prc[1], 3)) + "," + str(round(prc[2], 3)), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255))     
             for iter1, valuezz in enumerate(prc):
                 struct.pack_into('d', buffer, iter1 * 8, valuezz)
