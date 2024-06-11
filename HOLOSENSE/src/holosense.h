@@ -15,16 +15,14 @@
 
 
 using namespace boost::interprocess;
-std::string getEnvVar( std::string const& key )
+
+std::string getEnvVar( std::string const & key ) const
 {
     char* val = getenv( key.c_str() );
-    if(val == NULL){
+    if(var == NULL){
         std::cout <<"Holosense backend environment variables are missing, start the backend first\n";
-        throw std::invalid_argument( "BACKEND NOT CONFIGURED" );
-        return NULL;
-        
     }
-    return std::string(val);
+    return val == NULL ? std::string("") : std::string(val);
 
 }
 
@@ -39,13 +37,19 @@ namespace Holosense
         double window_left_offset;
         double window_top_offset;
         double window_bottom_offset;
-        double wpx = atof(getEnvVar("DISPLAY_WIDTH").c_str()); 
-        double hpx = atof(getEnvVar("DISPLAY_HEIGHT").c_str()); 
+        double wpx = 3840;//strtod(getEnvVar("DISPLAY_WIDTH"),NULL); 
+        double hpx = 2160; //strtod(getEnvVar("DISPLAY_HEIGHT"),NULL);
+        bool interpolation_ready = false;
+        glm::dvec4 prev1(0.d, 0.f, 0.f, 0.f);
+        glm::dvec4 prev2(0.d, 0.f, 0.f, 0.f);
+        glm::dvec4 prev3(0.d, 0.d, 0.f, 0.f);
+        double deltaT;
+        double prevTime = 0;
         Holosense() { // constructor method
 
-                double scdiag = atof(getEnvVar("DISPLAY_DIAGONAL").c_str());  // meant to read this from the config file.
+                double scdiag =  15.6; // strtod(getEnvVar("DISPLAY_DIAGONAL")); // meant to read this from the config file.
                 screen_width = scdiag * (wpx/sqrt(wpx * wpx + hpx * hpx)); // sets the screen width and height in inches
-                screen_width = scdiag * (hpx/sqrt(wpx * wpx + hpx * hpx));
+                screen_height = scdiag * (hpx/sqrt(wpx * wpx + hpx * hpx));
                 window_top_offset = screen_height / 2;
                 window_bottom_offset = -screen_height / 2;
                 window_right_offset = screen_width / 2;
@@ -80,6 +84,15 @@ namespace Holosense
             double xcoord = data[0] * dpi;
             double ycoord = -data[1] * dpi;
             double zcoord = data[2] * dpi;
+            double measuredTime = data[3];
+            glm::dvec4 curr_vec(xcoord, ycoord, zcoord, measuredTime);
+            
+            if(measuredTime == prevTime){
+                
+                // no updates from the backend - perform interpolation.
+            }
+            previous3 = glm::vec3(xcoord, ycoord, zcoord);
+
             double left = xcoord + this->window_left_offset*dpi;
             double right = xcoord + this->window_right_offset*dpi;
             double top = ycoord + this->window_top_offset*dpi;
